@@ -35,6 +35,7 @@
 #include <qcc/Timer.h>
 #include <qcc/Util.h>
 
+#include <alljoyn/AboutObjectDescription.h>
 #include <alljoyn/BusObject.h>
 #include <alljoyn/Message.h>
 #include <alljoyn/MessageReceiver.h>
@@ -258,6 +259,22 @@ class _LocalEndpoint : public _BusEndpoint, public qcc::AlarmListener, public Me
      * @param obj  Object to be unregistered.
      */
     void UnregisterBusObject(BusObject& obj);
+
+    /**
+     * Get the Announced Object Description for the BusObjects registered on
+     * the BusAttachment with interfaces marked as announced.
+     *
+     * This will clear any previous contents of the of the MsgArg provided. The
+     * resulting MsgArg will have a signature a(oas) and will contain an array
+     * of object paths. For each object path an array of announced interfaces found
+     * at that object path will be listed.
+     *
+     * @param[out] aboutObjectDescriptionArg reference to a MsgArg that will
+     *             be filled in.
+     *
+     * @return ER_OK on success
+     */
+    QStatus GetAnnouncedObjectDescription(MsgArg& objectDescriptionArg);
 
     /**
      * Find a local object.
@@ -694,6 +711,25 @@ class LocalTransport : public Transport {
      * @return ER_OK if successful.
      */
     QStatus GetListenAddresses(const SessionOpts& opts, std::vector<qcc::String>& busAddrs) const { return ER_OK; }
+
+    /**
+     * Does this transport support connections as described by the provided
+     * session options.
+     *
+     * @param opts  Proposed session options.
+     * @return
+     *      - true if the SessionOpts specifies a supported option set.
+     *      - false otherwise.
+     */
+    bool SupportsOptions(const SessionOpts& opts) const
+    {
+        bool rc = true;
+        /* Supports any traffic so long as it is reliable */
+        if (opts.traffic != SessionOpts::TRAFFIC_MESSAGES && opts.traffic != SessionOpts::TRAFFIC_RAW_RELIABLE) {
+            rc = false;
+        }
+        return rc;
+    }
 
     /**
      * Indicates whether this transport is used for client-to-bus or bus-to-bus connections.
