@@ -20,6 +20,10 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#ifndef _WINRT
+#define _WINRT
+#endif
+
 #include <qcc/platform.h>
 
 #include <algorithm>
@@ -36,6 +40,11 @@
 #include <Status.h>
 
 using namespace std;
+
+#ifdef _WINRT
+#include <ppltasks.h>
+using namespace concurrency;
+#endif
 
 /** @internal */
 #define QCC_MODULE "THREAD"
@@ -169,7 +178,11 @@ Thread::Thread(qcc::String name, Thread::ThreadFunction func, bool isExternal) :
     state(isExternal ? RUNNING : DEAD),
     isStopping(false),
     function(isExternal ? NULL : func),
+#ifdef _WINRT
+    handle(0),
+#else
     handle(isExternal ? GetCurrentThread() : 0),
+#endif
     exitValue(NULL),
     arg(NULL),
     listener(NULL),
@@ -235,6 +248,7 @@ ThreadInternalReturn STDCALL Thread::RunInternal(void* threadArg)
         QCC_DbgPrintf(("Starting thread had NULL thread handle, exiting..."));
     }
 
+#ifndef _WINRT
     /* Wait for about 100ms max for the thread structure to be initialized.
      * Typically, this should be initialized by 1ms.
      */
@@ -242,14 +256,17 @@ ThreadInternalReturn STDCALL Thread::RunInternal(void* threadArg)
     while (!thread->isStopping && ((thread->handle == reinterpret_cast<HANDLE>(-1) || thread->threadId == 0)) && (count++ < 50)) {
         qcc::Sleep(2);
     }
+#endif
 
     ++started;
 
+#ifndef _WINRT
     /* Add this Thread to list of running threads */
     threadListLock->Lock();
     (*threadList)[(ThreadHandle)thread->threadId] = thread;
     thread->state = RUNNING;
     threadListLock->Unlock();
+#endif
 
     /* Start the thread if it hasn't been stopped and is fully initialized */
     if (!thread->isStopping && NULL != thread->handle) {
@@ -294,12 +311,14 @@ ThreadInternalReturn STDCALL Thread::RunInternal(void* threadArg)
 
     /* This also means no QCC_DbgPrintf as they try to get context on the current thread */
 
+#ifndef _WINRT
     /* Remove this Thread from list of running threads */
     threadListLock->Lock();
     threadList->erase((ThreadHandle)threadId);
     threadListLock->Unlock();
 
     _endthreadex(retVal);
+#endif
     return retVal;
 }
 
@@ -330,10 +349,22 @@ QStatus Thread::Start(void* arg, ThreadListener* listener)
         this->listener = listener;
 
         state = STARTED;
+#ifdef _WINRT
+        try
+        {
+            task_options opts = task_options();
+            handle = new task<void>([this]{
+                RunInternal(this);
+            }, opts);
+        }
+        catch (exception)
+        {
+#else
         handle = reinterpret_cast<HANDLE>(-1);
         handle = reinterpret_cast<HANDLE>(_beginthreadex(NULL, stacksize, RunInternal, this, 0, &threadId));
         if (handle == 0) {
             state = DEAD;
+#endif
             isStopping = false;
             status = ER_OS_ERROR;
             QCC_LogError(status, ("Creating thread"));
@@ -402,6 +433,7 @@ QStatus Thread::Join(void)
                    self ? threadId : GetThread()->threadId,
                    self ? "Closing" : "Joining",
                    threadId, funcName, threadId));
+#ifndef _WINRT
     /*
      * make local copy of handle so it is not deleted if two threads are in
      * Join at the same time.
@@ -422,6 +454,18 @@ QStatus Thread::Join(void)
         CloseHandle(goner);
         ++stopped;
     }
+#else
+    try
+    {
+        handle->wait();
+    }
+    catch (exception ex)
+    {
+        status = ER_OS_ERROR;
+        QCC_LogError(status, ("Joining thread: %d", threadId));
+    }
+    ++stopped;
+#endif
     isStopping = false;
     state = DEAD;
     QCC_DbgPrintf(("%s thread %s", self ? "Closed" : "Joined", funcName));

@@ -25,10 +25,19 @@
 #ifndef _OS_QCC_THREAD_H
 #define _OS_QCC_THREAD_H
 
+#ifndef _WINRT
+#define _WINRT
+#endif
+
 #include <qcc/platform.h>
 #include <winsock2.h>
 #include <windows.h>
 #include <process.h>
+
+#ifdef _WINRT
+#include <ppltasks.h>
+using namespace concurrency;
+#endif
 
 /**
  * Windows uses __stdcall for certain API calls
@@ -44,12 +53,16 @@
 
 namespace qcc {
 
-typedef HANDLE ThreadHandle;            ///< Window process handle typedef.
-
 /**
  * Windows' thread function return type
  */
 typedef unsigned int ThreadInternalReturn;
+
+#ifndef _WINRT
+typedef HANDLE ThreadHandle;                             ///< Window process handle typedef.
+#else
+typedef task<void>* ThreadHandle;        ///< Window process handle typedef.
+#endif
 
 }
 
