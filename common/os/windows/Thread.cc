@@ -223,7 +223,9 @@ Thread::~Thread(void)
             Stop();
             Join();
         } else if (handle) {
+#ifndef _WINRT
             CloseHandle(handle);
+#endif
             handle = 0;
             ++stopped;
         }
