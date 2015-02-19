@@ -19,6 +19,11 @@ whitespace.db
 
 #Files created by Microsoft Visual Studio
 unit_test/AllJoynUnityTest.csproj.user
+UpgradeLog*.htm
+*.suo
+
+Backup*/
+AllJoynUnity.sln.ide/
 
 #Files created by Unity
 *.pdb

@@ -215,6 +215,59 @@ namespace AllJoynUnity
 			}
 
 			/**
+			 * Get a property from an interface on the remote object.
+			 *
+			 * @param ifaceName		Name of interface to retrieve property from.
+			 * @param propertyName	The name of the property to get.
+			 * @param result		The property value, received from remote object
+			 *
+			 *
+			 * @return
+			 * 		- QStatus.OK if the property was obtained.
+			 * 		- QStatus.ER_BUS_OBJECT_NO_SUCH_INTERFACE if the no such interface on this remote object.
+			 * 		- QStatus.ER_BUS_NO_SUCH_PROPERTY if the property does not exist
+			 */
+            public QStatus GetProperty(string ifaceName, string propertyName, MsgArg result)
+            {
+                return alljoyn_proxybusobject_getproperty(_proxyBusObject, ifaceName, propertyName, result.UnmanagedPtr);
+            }
+
+			/**
+			 * Get all properties from an interface on the remote object.
+			 *
+			 * @param ifaceName		Name of interface to retrieve all properties from.
+			 * @param result		Property values returned as an array of dictionary entries, signature "a{sv}".
+			 *
+			 *
+			 * @return
+			 * 		- QStatus.OK if the property was obtained.
+			 * 		- QStatus.ER_BUS_OBJECT_NO_SUCH_INTERFACE if the no such interface on this remote object.
+			 * 		- QStatus.ER_BUS_NO_SUCH_PROPERTY if the property does not exist
+			 */
+            public QStatus GetAllProperties(string ifaceName, MsgArg result)
+            {
+                return alljoyn_proxybusobject_getallproperties(_proxyBusObject, ifaceName, result.UnmanagedPtr);
+            }
+
+			/**
+			 * Set a property on an interface on the remote object.
+			 *
+			 * @param ifaceName		Name of interface to retrieve property from.
+			 * @param propertyName	The name of the property to get.
+			 * @param value			The value to set
+			 *
+			 *
+			 * @return
+			 * 		- QStatus.OK if the property was set.
+			 * 		- QStatus.ER_BUS_OBJECT_NO_SUCH_INTERFACE if the no such interface on this remote object.
+			 * 		- QStatus.ER_BUS_NO_SUCH_PROPERTY if the property does not exist
+			 */
+            public QStatus SetProperty(string ifaceName, string propertyName, MsgArg value)
+            {
+                return alljoyn_proxybusobject_setproperty(_proxyBusObject, ifaceName, propertyName, value.UnmanagedPtr);
+            }
+
+            /**
 			 * Returns an interface description. Returns NULL if the object does not implement
 			 * the requested interface.
 			 *
@@ -224,7 +277,7 @@ namespace AllJoynUnity
 			 *      - The requested interface description.
 			 *      - NULL if requested interface is not implemented or not found
 			 */
-			public InterfaceDescription GetInterface(string iface)
+            public InterfaceDescription GetInterface(string iface)
 			{
 				IntPtr infacePtr = alljoyn_proxybusobject_getinterface(_proxyBusObject, iface);
 				if (infacePtr == IntPtr.Zero)
@@ -455,7 +508,24 @@ namespace AllJoynUnity
 				uint timeout,
 				byte flags);
 
-			[DllImport(DLL_IMPORT_TARGET)]
+            [DllImport(DLL_IMPORT_TARGET)]
+            private static extern int alljoyn_proxybusobject_getproperty(IntPtr proxyObj,
+                [MarshalAs(UnmanagedType.LPStr)] string ifaceName,
+                [MarshalAs(UnmanagedType.LPStr)] string propertyName,
+                IntPtr value);
+
+            [DllImport(DLL_IMPORT_TARGET)]
+            private static extern int alljoyn_proxybusobject_getallproperties(IntPtr proxyObj,
+            	[MarshalAs(UnmanagedType.LPStr)] string ifaceName,
+            	IntPtr values);
+
+            [DllImport(DLL_IMPORT_TARGET)]
+            private static extern int alljoyn_proxybusobject_setproperty(IntPtr proxyObj,
+                [MarshalAs(UnmanagedType.LPStr)] string ifaceName,
+                [MarshalAs(UnmanagedType.LPStr)] string propertyName,
+                IntPtr value);
+
+            [DllImport(DLL_IMPORT_TARGET)]
 			private static extern IntPtr alljoyn_proxybusobject_getinterface(IntPtr proxyObj, [MarshalAs(UnmanagedType.LPStr)] string iface);
 
 			[DllImport(DLL_IMPORT_TARGET)]
